@@ -48,13 +48,14 @@ parser.add_argument('-c', '--alpha', type=float, default=0.2, help='weight for c
 parser.add_argument('-k', '--beta', type=float, default=0.8, help='weight balance for KD')
 parser.add_argument('-o', '--gamma', type=float, default=2.0, help='weight balance for other losses')
 parser.add_argument('-d', '--delta', type=float, default=2.0, help='weight balance for other losses')
+parser.add_argument('--S_size', default=44, type=int, help='44,32,24,16,8')
 parser.add_argument('--noise', type=str, default='none', help='GaussianBlur,AverageBlur,MedianBlur,BilateralFilter,Salt-and-pepper')
 
 args, unparsed = parser.parse_known_args()
 
 path = os.path.join(args.save_root + args.data_name+ '_' + args.t_model + '_' + args.s_model
 					+ '_'+ args.distillation + '_c_' + str(args.alpha) + '_k_' + str(args.beta) + '_o_'
-					+ str(args.gamma) + '_d_' + str(args.delta) + '_d_' + str(args.seed) + '_' + str(args.noise))
+					+ str(args.gamma) + '_d_' + str(args.delta) + '_d_' + str(args.seed) + '_' + str(args.noise) + '_' + str(args.S_size))
 text_path = path + '/' + args.data_name+ '_' + args.t_model + '_' + args.s_model + '_'+ args.distillation + '_c_' \
 			+ str(args.alpha) + '_k_' + str(args.beta) + '_o_' + str(args.gamma) + '_d_' + str(args.delta) + '_' + str(args.noise)
 writer = SummaryWriter(log_dir=path)
@@ -157,6 +158,7 @@ transforms_teacher_Normalize,
 ])
 
 student_norm = transforms.Compose([
+transforms.Resize(args.S_size),
 transforms.Resize(44),
 transforms.RandomApply([
 	transforms.Lambda(lambda img: utils.color(img, magnitude=0.5)),
@@ -173,6 +175,8 @@ transforms_student_Normalize,
 ])
 
 transform_test = transforms.Compose([
+transforms.Resize(args.S_size),       # Downsample
+transforms.Resize(44),       # Upsample
 transforms.TenCrop(44),
 transforms_test_Normalize,
 ])
@@ -185,7 +189,7 @@ elif args.data_name == 'ExpW':
 	PrivateTestset = ExpW(split = 'PrivateTest', transform=transform_test, student_norm=None, teacher_norm=None)
 elif args.data_name == 'CK_Plus':
 	trainset = CK_Plus(split = 'Training', transform=transform_train, student_norm=student_norm, teacher_norm=teacher_norm)
-	PrivateTestset = CK_Plus(split = 'PrivateTest', transform=transform_test, student_norm=None, teacher_norm=None)
+	PrivateTestset = CK_Plus(split = 'PrivateTest', transform=transform_test, student_norm=None, teacher_norm=None, is_ATD=False, noise=args.noise)
 else:
 	raise Exception('Invalid dataset name...')
 
